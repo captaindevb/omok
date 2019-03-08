@@ -1,0 +1,273 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+	<meta charset="utf-8">
+	<style>
+  body{position: relative;}
+	*{
+	padding:0;
+	margin:0;
+}
+#board{
+	margin:20px 0 0 0;
+	border-collapse:collapse;
+	text-align:center;
+	width:410px;
+	border-spacing: 0;
+}
+
+#board td{
+	background:url('/images/default.jpg') no-repeat;
+	width:41px;
+	height:41px;
+}
+#board td img{
+	text-align:center;
+	vertical-align:middle;
+}
+#board .topline .top{
+	background:url('/images/top.jpg') no-repeat;
+}
+#board .bottomline .bottom{
+	background:url('/images/bottom.jpg') no-repeat;
+}
+
+#board .lefttop{
+	background:url('/images/lefttop.jpg') no-repeat;
+}
+#board .righttop{
+	background:url('/images/righttop.jpg') no-repeat;
+}
+
+#board .leftbottom{
+	background:url('/images/leftbottom.jpg') no-repeat;
+}
+#board .rightbottom{
+	background:url('/images/rightbottom.jpg') no-repeat;
+}
+#board .left{
+	background:url('/images/left.jpg') no-repeat;
+}
+#board .right{
+	background:url('/images/right.jpg') no-repeat;
+}
+
+.gametxt{
+	width:410px;
+	margin:0 auto;
+}
+
+.box{
+  position:absolute;
+  right:10px;
+  top:0;
+  overflow:auto;
+  width: 300px;
+  height: 400px;
+  border:1px solid #000;
+}
+.box1{
+  margin-top:30px;
+  border:1px solid #000;
+  position:relative;
+  height: 200px;
+  padding-bottom:40px;
+}
+.box1 form{position: absolute;width:100%;left:0;bottom:0;border-top:1px solid #000;}
+
+	</style>
+  </head>
+  <body>
+    <table id="board" cellpadding="0" cellspacing="0">
+	<caption>오목게임</caption>
+  </table>
+
+  <div class="box">
+    <h5>유저리스트</h5>
+    <ul id="user">
+
+    </ul>
+  </div>
+<div class="gametxt"></div>
+
+<div class="box1">
+    <ul id="messages"></ul>
+    <form action="" >
+      <input type='text' id="m" autocomplete="off" /><button id="btn">Send</button>
+    </form>
+  </div>
+
+
+    <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+
+      $(function () {
+//무승부신청 ->수락
+//전적카운트
+//로그인? 기능. 닉네임 설정.
+//AI와 대전하기.
+//item 사용.
+
+var maxsize = 9;
+var user;//1:black, 2:white
+
+        var socket = io();
+        $('form').submit(function(){
+          socket.emit('chat message', $('#m').val());
+          $('#m').val('');
+          return false;
+        });
+        socket.on('chat message', function(data){
+          //$('#messages').append($('<li>').text(data.msg));
+          $('#messages').append(`<li>${data.user}님: ${data.msg}</li>`);
+          //window.scrollTo(0, document.body.scrollHeight);
+        });
+
+        $('#btn').click(function(){
+
+          //$('#m').val('');
+         var data = {
+           msg: $('#m').val(),
+           user: user
+         };
+         socket.emit('chat message', data);
+        });
+
+
+		//emit : 서버의 이벤트를 호출.
+		socket.emit('playerset',user);//서버에게 전송.
+
+		//서버로부터 이벤트를 받을 수 있게 준비해놓은 이벤트 핸들러.
+		socket.on('playerset',function(data){//서버로부터 메소드 호출 받았을때.
+			//alert(data);
+      //유저리스트뿌리기
+      $('#user').html('');
+      $('#user').append(data.li);
+			if(!user)
+				user = data.userNum;
+		});
+
+		//서버가 원격에서 호출하는 이벤트.
+		socket.on('click',function(data){
+			//alert(data.user != user);
+			if(data.user == 1)
+				$("td[data-list='"+data.doll+"']").append("<img src='/images/black.png'>");
+			else
+				$("td[data-list='"+data.doll+"']").append("<img src='/images/white.png'>");
+			$("td[data-list='"+data.doll+"']").get(0).state = 1;
+      //element node의 state 동적속성을 추가 이 td는 돌이 둔 상태이다
+		});
+		socket.on('message',function(msg){
+			console.log(msg);
+			if(msg.type == 'wincheck'){
+				//alert(msg.message);
+				$(".gametxt").html(msg.message);
+				$(".gametxt").append("<input type='button' value='다시하기' id='replay'>");
+			}else{
+				if(msg.user == user)//나한테 보내는 메시지라면.
+					alert(msg.message);
+			}
+		});
+
+
+	//오목판 세팅.
+	for(var i =0;i<10;i++){
+		$("#board").append("<tr></tr>");
+		if(i==0){
+			$("#board tr").eq(i).addClass("topline");
+		}else if(i==maxsize){
+			$("#board tr").eq(i).addClass("bottomline");
+		}
+
+		for(var j=0;j<10;j++){
+			$("#board tr:nth-child("+(i+1)+")").append("<td data-list='"+i+j+"'></td>");
+			if(i==0){
+				if(j==0){
+					$("#board tr:nth-child("+(i+1)+") td:first").addClass("lefttop");
+				}else if(j==maxsize){
+					$("#board tr:nth-child("+(i+1)+") td:last").addClass("righttop");
+				}else{
+					$("#board tr:nth-child("+(i+1)+") td:nth-child("+(j+1)+")").addClass("top");
+				}
+			}else if(i==maxsize){
+				if(j==0){
+					$("#board tr:nth-child("+(i+1)+") td:first").addClass("leftbottom");
+				}else if(j==maxsize){
+					$("#board tr:nth-child("+(i+1)+") td:last").addClass("rightbottom");
+				}else{
+					$("#board tr:nth-child("+(i+1)+") td:nth-child("+(j+1)+")").addClass("bottom");
+				}
+			}else{
+				if(j==0){
+					$("#board tr:nth-child("+(i+1)+") td:first").addClass("left");
+				}else if(j==maxsize){
+					$("#board tr:nth-child("+(i+1)+") td:last").addClass("right");
+				}
+			}
+		}
+	}
+
+	$("td").click(function(){
+		resetBG(this);
+		$(".gametxt").html('');
+		var data={
+			user : user,
+			doll : $(this).attr('data-list')
+		};
+		if(!this.state){//td가 비어있는 곳이냐.
+			socket.emit('click', data);
+			/*
+			if(user==1){
+				 socket.emit('click', data);
+				//$(this).append("<img src='/images/black.png'>");
+				//blackarr.push($(this).attr('data-list'));
+				//승리판단
+				isWin(user,blackarr);
+			}else{
+				//$(this).append("<img src='/images/white.png'>");
+				//whitearr.push($(this).attr('data-list'));
+				socket.emit('click', data);
+				//승리판단.
+				isWin(user,whitearr);
+			}
+			*/
+			//this.state = 1;
+
+
+			//턴바꾸기
+			//user==1 ? user = 2 : user =1;
+		}else{
+			$(".gametxt").html('둘 수 없는 곳입니다.');
+		}
+	});
+
+	var originBG;
+	$("td").hover(function(){
+		//origin background
+		originBG = $(this).css('background-image');
+    //this : t태그
+    //td태그에 동적 속성 state : undefined;
+		if(!this.state){ //돌이 생성되지 않은 상태
+			if(user==1)
+				$(this).css({'background-image':'url(/images/black.png)','opacity':'0.2'});
+			else
+				$(this).css({'background-image':'url(/images/white.png)','opacity':'0.2'});
+		}
+	},function(){
+		if(!this.state)
+			$(this).css({'background-image':originBG,'opacity':'1'});
+	});
+
+	function resetBG(obj){
+		$(obj).css({'background-image':originBG,'opacity':'1'});
+	}
+
+	$(document).on("click","#replay",function(){
+		location.reload();
+	});
+});
+    </script>
+  </body>
+</html>
