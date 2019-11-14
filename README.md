@@ -1,2 +1,9 @@
-# omok
-node.js study
+- 자바스크립트 객체설계
+- 프로토타입 활용
+- 객체리터럴
+- 이벤트 처리
+- DOM/NODE/ELEMENT 활용
+- 제이쿼리 에니메이션
+- 노드JS 서버프로그래밍
+- HTTP/Express/Socket.io 모듈
+- 오목 게임 알고리즘 설계
